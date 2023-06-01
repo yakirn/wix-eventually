@@ -7,9 +7,8 @@
   "license": "ISC",
   "homepage": "https://github.com/wix/wix-eventually",
   "scripts": {
-    "build": "webpack --output-library-target=umd index.js dist/index.umd.js",
+    "build": "tsc",
     "pretest": "npm run build",
-    "test:typings": "TS_NODE_TYPE_CHECK=true mocha --require ts-node/register 'test/typings.spec.ts'",
     "test": "mocha 'test/**/*.spec.js' && npm run test:typings"
   },
   "publishConfig": {
