@@ -6,8 +6,8 @@ export interface Options {
   interval?: number;
 }
 const defaults: Options = {
-  timeout: 10000,
-  interval: 200
+  timeout: 10000000,
+  interval: 200000
 }
 type aFunction<R> = () => R
 
