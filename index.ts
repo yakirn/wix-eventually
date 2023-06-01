@@ -1,11 +1,20 @@
-const trier = require('trier-promise')
+import trier from 'trier-promise';
 
-const defaults = {
+type UnPromisify<T> = T extends Promise<infer U> ? U : T;
+
+export interface Options {
+  timeout?: number;
+  interval?: number;
+}
+
+
+
+const defaults: Options = {
   timeout: 10000,
   interval: 200
 }
 
-function eventually(fn, opts) {
+ function eventually<ReturnValue>(fn: () => ReturnValue, opts?: Options): Promise<UnPromisify<ReturnValue>> {
   return Promise.resolve().then(() => {
     let error = null
     const action = () => Promise.resolve().then(fn).catch(err => {
@@ -23,5 +32,7 @@ function eventually(fn, opts) {
   })
 }
 
-module.exports = eventually
-module.exports.with = overrides => (fn, opts) => eventually(fn, Object.assign({}, overrides, opts))
+export default {
+  eventually,
+  with: overrides => (fn, opts) => eventually(fn, Object.assign({}, overrides, opts))
+}
