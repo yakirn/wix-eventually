@@ -5,7 +5,7 @@ const openai = new GPT3(process.env.OPENAI_API_KEY);
 
 const files = process.argv[2].split(",");
 
-(async () => {
+module.exports = (async () => {
   for (const file of files) {
     const content = fs.readFileSync(file, 'utf8');
     const response = await openai.complete({

@@ -5,7 +5,7 @@ const openai = new GPT3(process.env.OPENAI_API_KEY);
 
 const changes = process.argv[2];
 
-(async () => {
+module.exports = (async () => {
   const docsContent = fs.readFileSync("README.md", 'utf8');
   const response = await openai.complete({
     prompt: `Perform the following actions:
