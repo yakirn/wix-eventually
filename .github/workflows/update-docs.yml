@@ -1,0 +1,118 @@
+name: Update Readme
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+  push:
+    branches:
+      - 'refs/pull/*/head' 
+
+jobs:
+  update_readme:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Check for file changes
+      id: file_changes
+      run: |
+        if [[ $(git diff --name-only HEAD^) =~ \.(js|ts)$ ]]; then
+          echo "::set-output name=changes::true"
+        else
+          echo "::set-output name=changes::false"
+        fi
+
+    - name: Get changes from API
+      id: get_changes
+      if: ${{ steps.file_changes.outputs.changes == 'true' }}
+      run: |
+        npm install @openai/api
+        node -e "
+          const fs = require('fs');
+          const { OpenAIApi } = require('@openai/api');
+
+          const api = new OpenAIApi(process.env.OPENAI_API_KEY);
+
+          const originalCodeFile = fs.readFileSync('../../index.ts', 'utf-8');
+
+          const prompt = `Your job is to analyse changes in code.
+          format the output as a json array, each object in the array should look like this:
+          1. changeType - type of change. for example: 'argument_rename', 'method_added', 'argument_added', 'value_change', etc
+          2. description - short description. if it's a rename include the previous name, if an argument was added include to which method and class and so on.
+          here is the original code file, surrounded in triple quotes:
+
+          \"""
+          \${original_code_file}
+          \"""
+          `;
+
+          const result = api.completions.create({
+            engine: 'davinci-codex',
+            prompt,
+          });
+
+          result.then((response) => {
+            console.log(response.choices[0].text);
+          });
+        "
+        echo "::set-output name=response::$RESPONSE"
+
+    - name: Update readme
+      id: update_readme
+      if: ${{ steps.get_changes.outputs.response }}
+      run: |
+        npm install @openai/api
+        node -e "
+          const fs = require('fs');
+          const { OpenAIApi } = require('@openai/api');
+
+          const api = new OpenAIApi(process.env.OPENAI_API_KEY);
+
+          const originalDocs = fs.readFileSync('path/to/original/docs.md', 'utf-8');
+          const changesJson = JSON.parse('${{ steps.get_changes.outputs.response }}');
+
+          const prompt = `~~~
+          Perform the following actions:
+
+          1. Understand the documentation delimited by the <docs></docs> tags.
+          2. Evaluate each change in the array delimited by the <changes></changes> tags.
+          3. For each change from step 2, if the change affects the <docs> content,
+            update the <docs> content to reflect the change.
+            If the change does not affect the <docs> content,
+            don't update the <docs> content for that change.
+          4. Output a code block that contains the updated <docs> content.
+            Make sure to escape backticks so all the content is rendered in a single code block.
+
+          <docs>
+          \${original_docs}
+          </docs>
+
+          <changes>
+          \${changes_json}
+          </changes>
+          ~~~`;
+
+          const result = api.completions.create({
+            engine: 'davinci-codex',
+            prompt,
+          });
+
+          result.then((response) => {
+            console.log(response.choices[0].text);
+          });
+        "
+        echo "::set-output name=response::$RESPONSE"
+
+    - name: Commit updated readme
+      id: commit_readme
+      if: ${{ steps.update_readme.outputs.response }}
+      run: |
+        git config --global user.name "Shalom the Mighty"
+        git config --global user.email "shalombo@wix.com"
+        git checkout ${{ github.event.pull_request.head.ref }}
+        echo "${{ steps.update_readme.outputs.response }}" > README.md
+        git add README.md
+        git commit -m "Update readme"
+        git push
