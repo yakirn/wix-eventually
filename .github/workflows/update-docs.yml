@@ -35,7 +35,7 @@ jobs:
 
           const api = new OpenAIApi(process.env.OPENAI_API_KEY);
 
-          const originalCodeFile = fs.readFileSync('path/to/original/code/file.js', 'utf-8');
+          const originalCodeFile = fs.readFileSync('../../index.ts', 'utf-8');
 
           const prompt = `Your job is to analyse changes in code.
           format the output as a json array, each object in the array should look like this:
